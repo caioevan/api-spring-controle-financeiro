@@ -17,7 +17,7 @@ import spring.boot.api.controleFin.model.entities.Categoria;
 import spring.boot.api.controleFin.model.services.MovimentacaoService;
 
 @RestController
-@RequestMapping("/controle-fin/movimentacao")
+@RequestMapping("/controle-fin/movimentacoes")
 public class MovimentacaoController {
 
 	@Autowired
