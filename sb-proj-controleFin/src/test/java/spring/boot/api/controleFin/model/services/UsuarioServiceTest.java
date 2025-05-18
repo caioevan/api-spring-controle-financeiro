@@ -1,19 +1,16 @@
 package spring.boot.api.controleFin.model.services;
 
-import org.junit.jupiter.api.Assertions;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
 import spring.boot.api.controleFin.model.dto.UsuarioDTO;
-import spring.boot.api.controleFin.model.entities.Movimentacao;
 import spring.boot.api.controleFin.model.entities.Usuario;
 import spring.boot.api.controleFin.model.repositories.UsuarioRepository;
 
