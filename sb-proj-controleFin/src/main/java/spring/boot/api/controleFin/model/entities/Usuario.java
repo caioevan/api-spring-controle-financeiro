@@ -52,6 +52,13 @@ public class Usuario {
 		this.doc = doc;
 		this.saldo = saldo;
 	}
+
+	public Usuario (long id, String nome, String doc, BigDecimal saldo) { //Construtor para classe de testes que recebe o id, nome, documento e saldo do DTO
+		this.id = id;
+		this.nome = nome;
+		this.doc = doc;
+		this.saldo = saldo;
+	}
 	
 	public void creditar(BigDecimal valor) { //Método para creditar um valor vindo de uma movimentação
 	    this.saldo = this.saldo.add(valor);
