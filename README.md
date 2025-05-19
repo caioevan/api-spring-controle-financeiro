@@ -4,6 +4,8 @@ API que recebe e adiciona usuários e movimentações financeiras.
 Cada usuário tem suas movimentações, seja de crédito ou débito, com categorias para cada movimentação.
 Cada movimentação pertence a apenas 1 usuário.
 
+Projeto com testes unitários implementado. 19/05/25
+
 # Endpoints dos usuários:
 POST /usuario (Adiciona um usuário);
 
