@@ -26,7 +26,7 @@ import lombok.Setter;
 public class Movimentacao {
 
 	/*
-	 * Tipo - créito ou débito
+	 * Tipo - crédito ou débito
 	 * Valor
 	 * Data
 	 * Categoria
@@ -47,6 +47,5 @@ public class Movimentacao {
 	
 	@Enumerated(EnumType.STRING)
 	@Column(length = 40)
-	private Categoria categoria; // Cateegoria da movimentação, todas as categorias estão no Enum Categoria.java
-	
+	private Categoria categoria; // Categoria da movimentação, todas as categorias estão no Enum Categoria.java
 }
