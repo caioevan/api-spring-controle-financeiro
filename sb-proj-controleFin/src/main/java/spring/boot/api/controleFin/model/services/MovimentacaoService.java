@@ -2,6 +2,7 @@ package spring.boot.api.controleFin.model.services;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ public class MovimentacaoService {
 
 	@Autowired
 	MovimentacaoRepository movimentacaoRepository;
+
 	@Autowired
 	UsuarioRepository usuarioRepository;
 	
@@ -30,7 +32,7 @@ public class MovimentacaoService {
 		
 		Usuario usuario = usuarioRepository
 				.findById(dto.getIdUsuario())
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado"));
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado!"));
 		
 		Movimentacao movimentacao = new Movimentacao();
 		
@@ -65,12 +67,10 @@ public class MovimentacaoService {
 	//Método para deletar uma movimentação
 	public void deletarMovimentacao(Long idUsuario, Long idMovimentacao) {
 		
-	    Usuario usuario = usuarioRepository.findById(idUsuario)
-	        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado"));
+	    Usuario usuario = this.validarUsuario(idUsuario);
 
 	    //Valida se o id da movimentação existe dentro do usuário expecífico e salva na variável
-	    Movimentacao movimentacao = movimentacaoRepository.findByIdAndUsuarioId(idMovimentacao, idUsuario)
-	    		.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Movimentação não encontrada ou não pertence a este usuário"));
+	    Movimentacao movimentacao = this.validarMovimentacao(idMovimentacao, idUsuario);
 
 	    //Aqui ajusta o saldo do usuário quando deletar a movimentação: Caso for de "debito", credita o valor no saldo, caso for de "credito", debita o valor no saldo
 	    if ("debito".equalsIgnoreCase(movimentacao.getTipoMovimentacao())) {
@@ -86,7 +86,16 @@ public class MovimentacaoService {
 	}
 	
 	//Método que retorna as movimentações de um mês específico, recebendo o mês, o ano e o id do usuário
-	public List<MovimentacaoDTO> buscarPorMes(int mes, int ano, Long id) {
+	public List<MovimentacaoDTO> buscarPorMes(int mes, int ano, Long idUsuario) {
+
+		//Verifica se o usuário é válido
+		Usuario usuario = this.validarUsuario(idUsuario);
+
+		if(mes <= 0 || mes > 12){// Valida o mês passado pelo usuário
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O mês deve ser entre 1 (Janeiro) e 12 (Dezembro)");
+		}else if(ano > LocalDate.now().getYear()){// Valida o ano passado pelo usuário
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ano não pode ser maior que o ano atual!");
+		}
 
 		//Data de início da busca, sempre começando pelo dia 1
 		LocalDate inicio = LocalDate.of(ano, mes, 1);
@@ -95,52 +104,69 @@ public class MovimentacaoService {
 		
 		//Utilizamos a Query que fizemos no UsuarioRepository para fazer a busca no banco de dados
 		//É feito uma stream para mapear cada movimentação trazida da consulta do banco e transforma-las em DTO, depois coletar cada uma e retornar como uma lista de DTO
-		return movimentacaoRepository.findByUsuarioIdAndDataBetween(id, inicio, fim).stream()
+		return movimentacaoRepository.findByUsuarioIdAndDataBetween(idUsuario, inicio, fim).stream()
 				.map(m -> new MovimentacaoDTO(m.getTipoMovimentacao(), m.getData(), m.getValor(), m.getCategoria(), m.getUsuario().getId()))
 				.collect(Collectors.toList());
 		
 	}
 	
 	//Método que retorna as movimentações de um mês específico, recebendo o ano e o id do usuário
-	public List<MovimentacaoDTO> buscarPorAno(int ano, Long id) {
-		
+	public List<MovimentacaoDTO> buscarPorAno(int ano, Long idUsuario) {
+
+		//Verifica se o usuário é válido
+		Usuario usuario = this.validarUsuario(idUsuario);
+
+		if(ano > LocalDate.now().getYear()){// Valida o ano passado pelo usuário
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ano não pode ser maior que o ano atual!");
+		}
+
 		//Data de início, com o mês 1 e dia 1
 		LocalDate inicio = LocalDate.of(ano, 1, 1);
 		//Data do fim, com o mês 12 e dia 31
 		LocalDate fim = LocalDate.of(ano, 12, 31);
 		
 		//Mesmo retorno do método acima, mudando apenas as datas para consulta no banco.
-		return movimentacaoRepository.findByUsuarioIdAndDataBetween(id, inicio, fim).stream()
+		return movimentacaoRepository.findByUsuarioIdAndDataBetween(idUsuario, inicio, fim).stream()
 					.map(m -> new MovimentacaoDTO(m.getTipoMovimentacao(), m.getData(), m.getValor(), m.getCategoria(), m.getUsuario().getId()))
 					.collect(Collectors.toList());
 		
 	}
 	
 	//Método que retorna as movimentações dentro de um range de datas especificadas pelo usuário.
-	public List<MovimentacaoDTO> buscarPersonalizada(int anoIni, int anoFim, int mesIni, int mesFim, int diaIni, int diaFim, Long id) {
-		
+	public List<MovimentacaoDTO> buscarPersonalizada(int anoIni, int anoFim, int mesIni, int mesFim, int diaIni, int diaFim, Long idUsuario) {
+
+		//Verifica se o usuário é válido
+		Usuario usuario = this.validarUsuario(idUsuario);
+
+		validarParametrosDeData(anoIni, anoFim, mesIni, mesFim, diaIni, diaFim);
+
 		LocalDate inicio = LocalDate.of(anoIni, mesIni, diaIni);
 		LocalDate fim = LocalDate.of(anoFim, mesFim, diaFim);
 		
-		return movimentacaoRepository.findByUsuarioIdAndDataBetween(id, inicio, fim).stream()
+		return movimentacaoRepository.findByUsuarioIdAndDataBetween(idUsuario, inicio, fim).stream()
 				.map(m -> new MovimentacaoDTO(m.getTipoMovimentacao(), m.getData(), m.getValor(), m.getCategoria(), m.getUsuario().getId()))
 				.collect(Collectors.toList());
 		
 	}
 	
 	//Método que retorna as movimentações por categoria de cada usuário
-	public List<MovimentacaoDTO> buscarPorCategoria(Long id, Categoria categoria){
+	public List<MovimentacaoDTO> buscarPorCategoria(Long idUsuario, Categoria categoria){
+
+		//Verifica se o usuário é válido
+		Usuario usuario = this.validarUsuario(idUsuario);
+
 		//Utilizamos a query que fizemos no UsuariorRepository
-		return movimentacaoRepository.findByUsuarioIdAndCategoria(id, categoria).stream()
+		return movimentacaoRepository.findByUsuarioIdAndCategoria(idUsuario, categoria).stream()
 				.map(m -> new MovimentacaoDTO(m.getTipoMovimentacao(), m.getData(), m.getValor(), m.getCategoria(), m.getUsuario().getId()))
 				.collect(Collectors.toList());
 	}
 	
 	//Método que busca uma movimentação específica por sua id de cada usuário
 	public MovimentacaoDTO buscarPorId(Long idMovimentacao, Long idUsuario) {
-		
-		Movimentacao movimentacao = movimentacaoRepository.findByIdAndUsuarioId(idMovimentacao, idUsuario)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Movimentação não encontrada"));
+
+		//Verifica se o usuário é válido
+		Usuario usuario = this.validarUsuario(idUsuario);
+		Movimentacao movimentacao = this.validarMovimentacao(idMovimentacao, idUsuario);
 		
 		return new MovimentacaoDTO(
 				movimentacao.getTipoMovimentacao(), 
@@ -154,12 +180,51 @@ public class MovimentacaoService {
 	//Método que retorna todas as movimentações de cada usuário
 	public List<MovimentacaoDTO> buscarPorIdUsuario(Long idUsuario) {
 		
-		Usuario usuario = usuarioRepository.findById(idUsuario)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST));
+		Usuario usuario = this.validarUsuario(idUsuario);
 		
 		return usuario.getMovimentacoes().stream()
 				.map(m -> new MovimentacaoDTO(m.getTipoMovimentacao(), m.getData(), m.getValor(), m.getCategoria(), m.getUsuario().getId()))
 				.collect(Collectors.toList());
+	}
+
+	private Usuario validarUsuario(Long idUsuario){
+		return usuarioRepository.findById(idUsuario).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado!"));
+	}
+
+	private Movimentacao validarMovimentacao(Long idMovimentacao, Long idUsuario){
+		return movimentacaoRepository.findByIdAndUsuarioId(idMovimentacao, idUsuario).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Movimentação não encontrada ou não pertence a este usuário!"));
+	}
+
+	private void validarParametrosDeData(int anoIni, int anoFim, int mesIni, int mesFim, int diaIni, int diaFim) {
+
+		if (mesIni < 1 || mesIni > 12) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O mês inicial deve ser entre 1 e 12!");
+		}
+		if (mesFim < 1 || mesFim > 12) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O mês final deve ser entre 1 e 12!");
+		}
+		if (anoIni == anoFim && mesIni > mesFim) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O mês inicial não pode ser maior que o mês final!");
+		}
+		if (anoIni > anoFim) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ano inicial não pode ser maior que o ano final!");
+		}
+		if (anoFim > LocalDate.now().getYear()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ano final não pode ser maior que o ano atual!");
+		}
+		if (diaIni < 1) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O dia inicial não pode ser menor que 1!");
+		}
+
+		int ultimoDiaDoMesFim = LocalDate.of(anoFim, mesFim, 1).lengthOfMonth();
+
+		if (diaFim > ultimoDiaDoMesFim) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"O dia final não pode ser maior que " + ultimoDiaDoMesFim + " para " + mesFim + "/" + anoFim);
+		}
+		if (anoIni == anoFim && mesIni == mesFim && diaIni > diaFim) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O dia inicial não pode ser maior que o dia final!");
+		}
 	}
 	
 }
