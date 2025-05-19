@@ -325,6 +325,44 @@ class MovimentacaoServiceTest {
     }
 
     @Test
+    @DisplayName("Deve lançar uma exceção ResponseStatusException quando o tipo da movimentação " +
+            "não for válido")
+    void deletarMovimentacaoCase5() {
+
+        List<Movimentacao> movimentacoes = new ArrayList<>();
+        Long idUsuario = 1L;
+        Long idMovimentacao = 1L;
+
+        Usuario usuario = new Usuario(
+                idUsuario,
+                "Maria",
+                "12345678900",
+                movimentacoes,
+                new BigDecimal("200.00"));
+
+        Movimentacao movimentacao = new Movimentacao(
+                idMovimentacao,
+                usuario,
+                "deb",
+                new BigDecimal("100.00"),
+                LocalDate.parse("2024-04-20"),
+                Categoria.SALARIO);
+
+        when(usuarioRepository.findById(idUsuario)).thenReturn(Optional.of(usuario));
+        when(movimentacaoRepository.findByIdAndUsuarioId(idMovimentacao, idUsuario)).thenReturn(Optional.of(movimentacao));
+
+        ResponseStatusException excecao = assertThrows(ResponseStatusException.class, () ->{
+            movimentacaoService.deletarMovimentacao(idUsuario, idMovimentacao);
+        });
+
+        Assertions.assertEquals("Tipo de movimentação inválido", excecao.getReason());
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, excecao.getStatusCode());
+
+        verify(usuarioRepository).findById(idUsuario);
+        verify(movimentacaoRepository).findByIdAndUsuarioId(idMovimentacao, idUsuario);
+    }
+
+    @Test
     @DisplayName("Deve retornar com sucesso uma lista de transações filtradas pelo mes e ano")
     void buscarPorMesCase1() {
 
