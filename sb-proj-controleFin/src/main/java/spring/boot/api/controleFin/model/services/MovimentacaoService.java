@@ -30,9 +30,7 @@ public class MovimentacaoService {
 	//Méetodo que adiciona uma movimentação
 	public void adicionarMovimentacao(MovimentacaoDTO dto) {
 		
-		Usuario usuario = usuarioRepository
-				.findById(dto.getIdUsuario())
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não encontrado!"));
+		Usuario usuario = this.validarUsuario(dto.getIdUsuario());
 		
 		Movimentacao movimentacao = new Movimentacao();
 		
@@ -73,12 +71,20 @@ public class MovimentacaoService {
 	    Movimentacao movimentacao = this.validarMovimentacao(idMovimentacao, idUsuario);
 
 	    //Aqui ajusta o saldo do usuário quando deletar a movimentação: Caso for de "debito", credita o valor no saldo, caso for de "credito", debita o valor no saldo
-	    if ("debito".equalsIgnoreCase(movimentacao.getTipoMovimentacao())) {
-	        usuario.setSaldo(usuario.getSaldo().add(movimentacao.getValor()));
-	    } else if ("credito".equalsIgnoreCase(movimentacao.getTipoMovimentacao())) {
-	        usuario.setSaldo(usuario.getSaldo().subtract(movimentacao.getValor()));
-	    }
-	    
+
+		String tipo = movimentacao.getTipoMovimentacao().toLowerCase();
+
+		switch (tipo){
+			case "debito":
+				usuario.creditar(movimentacao.getValor());
+				break;
+			case "credito":
+				usuario.debitar(movimentacao.getValor());
+				break;
+			default:
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de movimentação inválido");
+		}
+
 	    movimentacaoRepository.deleteById(idMovimentacao);
 	    //Remove da lista de movimentações do objeto Usuário para não haver uma falta de compatibilidade com o banco de dados
 	    usuario.getMovimentacoes().removeIf(m -> m.getId().equals(idMovimentacao)); 
