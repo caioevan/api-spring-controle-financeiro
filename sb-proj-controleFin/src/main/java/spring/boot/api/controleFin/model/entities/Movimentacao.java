@@ -46,6 +46,5 @@ public class Movimentacao {
 	private LocalDate data; // Data da movimentação
 	
 	@Enumerated(EnumType.STRING)
-	@Column(length = 40)
 	private Categoria categoria; // Categoria da movimentação, todas as categorias estão no Enum Categoria.java
 }
